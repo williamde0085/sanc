@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdnList xmlns="https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML">
+  <sdnEntry>
+    <uid>1001</uid>
+    <firstName>Ivan</firstName>
+    <lastName>Petrov</lastName>
+    <sdnType>Individual</sdnType>
+    <remarks>test entry</remarks>
+    <programList>
+      <program>TEST-PROGRAM</program>
+    </programList>
+    <idList>
+      <id>
+        <uid>4001</uid>
+        <idType>Passport</idType>
+        <idNumber>KZ123456</idNumber>
+        <idCountry>Kazakhstan</idCountry>
+      </id>
+    </idList>
+    <akaList>
+      <aka>
+        <uid>2001</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <firstName>Иван</firstName>
+        <lastName>Петров</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>3001</uid>
+        <city>Almaty</city>
+        <country>Kazakhstan</country>
+      </address>
+    </addressList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>5001</uid>
+        <dateOfBirth>1975</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>1002</uid>
+    <lastName>ACME TRADING LLC</lastName>
+    <sdnType>Entity</sdnType>
+    <programList>
+      <program>TEST-PROGRAM</program>
+    </programList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>9999</uid>
+    <sdnType>Individual</sdnType>
+  </sdnEntry>
+</sdnList>
