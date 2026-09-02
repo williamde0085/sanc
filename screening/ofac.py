@@ -58,7 +58,7 @@ def parse_xml(path,source_list="SDN"):
             "entity_type": entry.findtext("s:sdnType", "", NS).strip() or None,
             "primary_name": name,
             "programs": programs,
-            "countries": list(dict.fromkeys(countries)),
+            "countries": countries,
             "dates_of_birth": dob,
             "aliases": aliases,
             "identifiers": ids,
