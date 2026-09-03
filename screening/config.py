@@ -12,7 +12,7 @@ SERVING_DSN = os.getenv("SERVING_DSN", "postgresql://postgres:postgres@localhost
 
 API_KEY = os.getenv("SCREENING_API_KEY", "")
 
-# пороги на глаз, потом настроить по факту
+# пороги на глаз, потом настроить
 REVIEW_THRESHOLD = float(os.getenv("SCREENING_REVIEW_THRESHOLD", "80"))
 MATCH_THRESHOLD = float(os.getenv("SCREENING_MATCH_THRESHOLD", "95"))
 REQUIRE_SECONDARY = _flag("SCREENING_REQUIRE_SECONDARY", True)
