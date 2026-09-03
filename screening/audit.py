@@ -19,6 +19,7 @@ def _decision_event(d):
         "requested_at": _iso(d["requested_at"]),
         "normalized_query": d["normalized_query"],
         "list_version": d["list_version"],
+        "matcher_version": d["matcher_version"],
         "outcome": d["outcome"],
         "top_score": float(d["top_score"]) if d["top_score"] is not None else None,
         "reason_codes": list(d["reason_codes"] or []),
@@ -37,7 +38,7 @@ def _review_event(r):
     }
 
 
-def record_decision(conn, request_id, normalized_query, list_version, outcome,
+def record_decision(conn, request_id, normalized_query, list_version, matcher_version, outcome,
                     top_score, reason_codes, candidates, enqueue_review):
     decision_id = uuid.uuid4()
     requested_at = datetime.now(UTC)
@@ -48,7 +49,8 @@ def record_decision(conn, request_id, normalized_query, list_version, outcome,
 
         d = {
             "decision_id": decision_id, "request_id": request_id, "requested_at": requested_at,
-            "normalized_query": normalized_query, "list_version": list_version, "outcome": outcome,
+            "normalized_query": normalized_query, "list_version": list_version,
+            "matcher_version": matcher_version, "outcome": outcome,
             "top_score": top_score, "reason_codes": reason_codes, "candidates": candidates,
         }
         event_hash = chained_hash(prev, _decision_event(d))
@@ -56,11 +58,11 @@ def record_decision(conn, request_id, normalized_query, list_version, outcome,
         cur.execute(
             """
             insert into screening_decisions
-              (decision_id, request_id, requested_at, normalized_query, list_version,
+              (decision_id, request_id, requested_at, normalized_query, list_version, matcher_version,
                outcome, top_score, reason_codes, candidates, previous_hash, event_hash)
-            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
-            (decision_id, request_id, requested_at, normalized_query, list_version,
+            (decision_id, request_id, requested_at, normalized_query, list_version, matcher_version,
              outcome, top_score, reason_codes, Jsonb(candidates), prev, event_hash),
         )
         cur.execute(
@@ -129,7 +131,8 @@ def verify_chains(conn):
         cur.execute(
             """
             select decision_id, request_id, requested_at, normalized_query, list_version,
-                   outcome, top_score, reason_codes, candidates, previous_hash, event_hash
+                   matcher_version, outcome, top_score, reason_codes, candidates,
+                   previous_hash, event_hash
             from screening_decisions order by seq
             """
         )

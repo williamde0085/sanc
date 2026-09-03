@@ -37,6 +37,7 @@ class ScreenResponse(BaseModel):
     request_id: str
     outcome: Outcome
     list_version: str
+    matcher_version: str
     reason_codes: list[str]
     candidates: list[CandidateOut]
     human_review_required: bool

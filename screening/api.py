@@ -1,10 +1,13 @@
+import hmac
+import time
 import uuid
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from screening import audit, db
+from screening import audit, db, metrics
 from screening.config import API_KEY, MATCH_THRESHOLD, MAX_CANDIDATES, REQUIRE_SECONDARY, REVIEW_THRESHOLD
-from screening.matcher import classify, score_candidate
+from screening.matcher import MATCHER_VERSION, classify, score_candidate
 from screening.models import Query
 from screening.normalize import normalize_name
 from screening.schemas import CandidateOut, ReviewRequest, ScreenRequest, ScreenResponse
@@ -13,8 +16,7 @@ app = FastAPI(title="sanctions screening", version="0.1.0")
 
 
 def require_api_key(x_api_key: str | None = Header(default=None)):
-    # TODO: сравнивать через hmac.compare_digest
-    if not API_KEY or x_api_key != API_KEY:
+    if not API_KEY or not x_api_key or not hmac.compare_digest(x_api_key, API_KEY):
         raise HTTPException(status_code=401, detail="bad api key")
 
 
@@ -34,8 +36,14 @@ def ready():
     return {"status": "ready", "entities": n}
 
 
+@app.get("/metrics")
+def prometheus_metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
 @app.post("/v1/screen", response_model=ScreenResponse, dependencies=[Depends(require_api_key)])
 def screen(req: ScreenRequest, x_request_id: str | None = Header(default=None)):
+    started = time.perf_counter()
     normalized = normalize_name(req.name)
     if not normalized:
         raise HTTPException(status_code=422, detail="имя не нормализуется")
@@ -65,20 +73,25 @@ def screen(req: ScreenRequest, x_request_id: str | None = Header(default=None)):
         ]
         list_version = db.current_list_version(conn)
         decision_id = audit.record_decision(
-            conn, request_id, normalized, list_version, outcome,
+            conn, request_id, normalized, list_version, MATCHER_VERSION, outcome,
             scored[0].score if scored else None, reasons,
             [c.model_dump() for c in out], outcome == "POSSIBLE_MATCH",
         )
 
-    return ScreenResponse(
+    resp = ScreenResponse(
         decision_id=decision_id,
         request_id=request_id,
         outcome=outcome,
         list_version=list_version,
+        matcher_version=MATCHER_VERSION,
         reason_codes=list(reasons),
         candidates=out,
         human_review_required=outcome == "POSSIBLE_MATCH",
     )
+    metrics.screen_requests_total.labels(outcome=outcome).inc()
+    metrics.screen_candidates.observe(len(out))
+    metrics.screen_latency_seconds.observe(time.perf_counter() - started)
+    return resp
 
 
 @app.get("/v1/decisions/{decision_id}", dependencies=[Depends(require_api_key)])
@@ -106,6 +119,7 @@ def verify_audit():
     with db.connect() as conn:
         result = audit.verify_chains(conn)
     if not result["valid"]:
+        metrics.audit_verify_failures_total.inc()
         raise HTTPException(status_code=503, detail=result)
     return result
 

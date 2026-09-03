@@ -3,6 +3,9 @@ from rapidfuzz import fuzz
 from screening.models import Candidate, Query, ScoredCandidate
 from screening.normalize import normalize_identifier, normalize_name, parse_year_or_date
 
+# бампать при любом изменении логики скоринга/классификации - пишется в аудит
+MATCHER_VERSION = "v1"
+
 
 def name_similarity(query_name, candidate):
     q = normalize_name(query_name)
@@ -18,9 +21,8 @@ def name_similarity(query_name, candidate):
             best_score, best_name = s, name
     return round(best_score, 2), best_name
 
-
 def _id_match(query, candidate):
-    want = normalize_identifier(query.identifier)
+    want =normalize_identifier(query.identifier)
     if not want:
         return False
     return any(normalize_identifier(str(i.get("number") or "")) == want for i in candidate.identifiers)
@@ -29,7 +31,7 @@ def _id_match(query, candidate):
 def _country_match(query, candidate):
     if not query.country:
         return False
-    want = normalize_name(query.country)
+    want =normalize_name(query.country)
     return any(normalize_name(c) == want for c in candidate.countries if c)
 
 
@@ -40,14 +42,13 @@ def _dob_match(query_dob, candidate_dobs):
     if q is None:
         return False
     for raw in candidate_dobs:
-        c = parse_year_or_date(raw)
+        c =parse_year_or_date(raw)
         if c is None or c[0] != q[0]:
             continue
         # год совпал; месяц и день сверяем, только если есть с обеих сторон
         if (q[1] is None or c[1] is None or q[1] == c[1]) and (q[2] is None or c[2] is None or q[2] == c[2]):
             return True
     return False
-
 
 def score_candidate(query: Query, candidate: Candidate) -> ScoredCandidate:
     name_score, matched_name = name_similarity(query.name, candidate)
@@ -59,7 +60,6 @@ def score_candidate(query: Query, candidate: Candidate) -> ScoredCandidate:
         and candidate.entity_type
         and normalize_name(query.entity_type) == normalize_name(candidate.entity_type)
     )
-
     score = name_score
     reasons = ["NAME_SIMILARITY"]
     if id_ok:
@@ -89,12 +89,10 @@ def score_candidate(query: Query, candidate: Candidate) -> ScoredCandidate:
         reason_codes=tuple(reasons),
     )
 
-
 def classify(scored, review_threshold, match_threshold, require_secondary):
     if not scored or scored[0].score < review_threshold:
         return "NO_MATCH", ("BELOW_REVIEW_THRESHOLD",)
-
-    top = scored[0]
+    top =scored[0]
     second = scored[1].score if len(scored) > 1 else 0.0
     ambiguous = top.score - second < 3.0
     has_secondary = top.identifier_match or top.country_match or top.dob_match or top.entity_type_match

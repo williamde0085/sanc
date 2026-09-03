@@ -1,5 +1,4 @@
-create extension if not exists pg_trgm;
-
+-- расширение ставит init.sh от суперюзера, здесь его нет
 create table if not exists sanction_entries (
     entity_id       text primary key,
     source_list     text not null,
@@ -24,6 +23,7 @@ create table if not exists screening_decisions (
     requested_at     timestamptz not null default now(),
     normalized_query text,
     list_version     text,
+    matcher_version  text,
     outcome          text,
     top_score        numeric,
     reason_codes     text[],

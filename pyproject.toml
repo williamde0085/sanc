@@ -5,6 +5,10 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "B", "UP"]
 
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"

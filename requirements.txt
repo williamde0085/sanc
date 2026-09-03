@@ -5,4 +5,5 @@ pydantic>=2
 rapidfuzz
 Unidecode
 requests
+tenacity
 prometheus-client

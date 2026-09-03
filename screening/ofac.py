@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import requests
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 NS = {"s": "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML"}
 
@@ -67,13 +68,23 @@ def parse_xml(path,source_list="SDN"):
     return records
 
 
+@retry(stop=stop_after_attempt(5), wait=wait_exponential(max=30), reraise=True)
 def download(url, dest_dir):
     dest_dir = Path(dest_dir)
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / url.rsplit("/", 1)[-1]
-    r = requests.get(url, timeout=120)
-    r.raise_for_status()
-    dest.write_bytes(r.content)
+    part = dest.with_suffix(dest.suffix + ".part")   # качаем сюда, в конце переименовываем
+    with requests.get(url, stream=True, timeout=120) as r:
+        r.raise_for_status()
+        with open(part, "wb") as f:
+            for chunk in r.iter_content(chunk_size=1024 * 1024):
+                f.write(chunk)
+        expected = r.headers.get("Content-Length")
+    got = part.stat().st_size
+    if expected is not None and int(expected) != got:
+        part.unlink()
+        raise RuntimeError(f"{dest.name}: {got} байт вместо ожидаемых {expected}")
+    part.replace(dest)
     return dest
 
 

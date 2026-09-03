@@ -1,5 +1,6 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import Any
 import psycopg
 from psycopg.rows import dict_row
 from screening.config import SERVING_DSN
@@ -7,7 +8,7 @@ from screening.models import Candidate
 
 
 @contextmanager
-def connect() -> Iterator[psycopg.Connection]:
+def connect() -> Iterator[psycopg.Connection[dict[str, Any]]]:
     with psycopg.connect(SERVING_DSN, row_factory=dict_row, connect_timeout=5) as conn:
         yield conn
 
